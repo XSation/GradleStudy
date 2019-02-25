@@ -1,0 +1,58 @@
+apply from: new File('common.gradle')
+
+//依赖相关的api
+buildscript {
+    ScriptHandler scriptHandler ->
+        //配置工程的仓库地址
+        scriptHandler.repositories {
+            RepositoryHandler repositoryHandler ->
+                repositoryHandler.google()
+                repositoryHandler.jcenter()
+                repositoryHandler.maven {
+                    MavenArtifactRepository mavenArtifactRepository ->
+                        mavenArtifactRepository.url('')
+                }
+        }
+        //配置工程插件的地址(写gradle程序时需要的插件)，project中的dependencies时应用程序所需要的依赖
+        scriptHandler.dependencies {
+            DependencyHandler dependencyHandler ->
+                dependencyHandler.classpath('com.android.tools.build:gradle:3.2.1')
+                // NOTE: Do not place your application dependencies here; they belong
+                // in the individual module build.gradle files
+        }
+}
+
+//buildscript {
+//    it.repositories {
+//        google()
+//        jcenter()
+//    }
+//    //配置工程插件的地址
+//    scriptHandler.dependencies {
+//        classpath 'com.android.tools.build:gradle:3.2.1'
+//        // NOTE: Do not place your application dependencies here; they belong
+//        // in the individual module build.gradle files
+//    }
+//}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+subprojects {
+    project ->
+//        println "aa" + project.name
+//        println project.plugins
+        if (!project.plugins.hasPlugin("com.android.application")) {
+            apply from: '../test.gradle'
+        }
+}
+
+

@@ -1,0 +1,81 @@
+apply plugin: 'com.android.application'
+
+println getRootDir()
+println getBuildDir()
+println getProjectDir()
+
+//寻找当前目录下的文件
+//println file('app.iml').text
+//new File需要传入绝对路径
+//def file1 = new File('xxxxx/app.iml')
+
+android {
+    compileSdkVersion compileSdkVersionForProperities.toInteger()
+//    compileSdkVersion rootProject.ext.android.compileSdkVersionForExtFile
+//    compileSdkVersion rootProject.mCompileSdkVersionRoot
+    defaultConfig {
+        applicationId "com.xk.myapplication"
+        minSdkVersion 14
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    //添加一个文件树依赖，亦可以添加一个文件 或多个文件
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation rootProject.ext.dependencies.appcompat
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+    //我们自己依赖了一个A库，然后这个三方库也依赖了这个A库，但是版本不同，可以通过这种方法排除三方库中的A
+    implementation '三方库' {
+        //可以通过module或者group或者结合起来排除
+//        exclude module: '想要排除的冲突库的module'
+//        exclude group: '想要排除的冲突库的group'
+
+        transitive false //禁止传递依赖 新版gradle应该可以通过api compile implementation来解决，最好不要用传递依赖，因为那个依赖api可能会改变
+        //A依赖B,B依赖C，如果打开传递依赖，那么A也可以调用C的方法，但是当B更新之后，C的api可能会改变，所以比较有风险。
+        //解决方法是让A同依赖B和C，这样不用担心C改变了，但是又可能会引入冲突问题，就可以通过上面的方法去解决
+
+
+    //旧版本provided（只在编译时读取，不会打包到输出产物中）的使用场景：1.例如tinker库，他只需要编译时生成一个application，然后就没用了，不需要打入到输出的产物中。
+    //2.当前工程是一个库工程，它依赖的库已经在主工程中依赖过了，编译时通过就好了。运行时使用的主工程依赖的库
+    }
+}
+
+//copy{//拷贝文件、文件夹
+//    def sourceFile  = file('build')
+//    from sourceFile//把xxx
+//    into getRootProject().getBuildDir()//拷贝到当前目录
+//    exclude{
+//        //排除不想拷贝的文件
+//    }
+//    rename {
+//        //重命名文件
+//    }
+//
+//}
+
+//对文件树进行遍历
+//fileTree('build') {
+//    FileTree fileTree ->
+//        fileTree.visit {
+//            FileTreeElement fileTreeElement ->
+//                println(fileTreeElement)
+//                copy{
+//                    from fileTreeElement.file
+//                    into getRootProject().path+"/test/"
+//                }
+//        }
+//}

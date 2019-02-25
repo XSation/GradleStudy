@@ -1,0 +1,5 @@
+include ':app', ':mylibrary'
+
+if (hasProperty('isLoadTest') ? isLoadTest.toBoolean() : false) {
+    include(':loglib')
+}
