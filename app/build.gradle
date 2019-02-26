@@ -39,19 +39,18 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     //我们自己依赖了一个A库，然后这个三方库也依赖了这个A库，但是版本不同，可以通过这种方法排除三方库中的A
-    implementation '三方库' {
-        //可以通过module或者group或者结合起来排除
+//    implementation '三方库' {
+    //可以通过module或者group或者结合起来排除
 //        exclude module: '想要排除的冲突库的module'
 //        exclude group: '想要排除的冲突库的group'
 
-        transitive false //禁止传递依赖 新版gradle应该可以通过api compile implementation来解决，最好不要用传递依赖，因为那个依赖api可能会改变
-        //A依赖B,B依赖C，如果打开传递依赖，那么A也可以调用C的方法，但是当B更新之后，C的api可能会改变，所以比较有风险。
-        //解决方法是让A同依赖B和C，这样不用担心C改变了，但是又可能会引入冲突问题，就可以通过上面的方法去解决
-
+//        transitive false //禁止传递依赖 新版gradle应该可以通过api compile implementation来解决，最好不要用传递依赖，因为那个依赖api可能会改变
+    //A依赖B,B依赖C，如果打开传递依赖，那么A也可以调用C的方法，但是当B更新之后，C的api可能会改变，所以比较有风险。
+    //解决方法是让A同依赖B和C，这样不用担心C改变了，但是又可能会引入冲突问题，就可以通过上面的方法去解决
 
     //旧版本provided（只在编译时读取，不会打包到输出产物中）的使用场景：1.例如tinker库，他只需要编译时生成一个application，然后就没用了，不需要打入到输出的产物中。
     //2.当前工程是一个库工程，它依赖的库已经在主工程中依赖过了，编译时通过就好了。运行时使用的主工程依赖的库
-    }
+//    }
 }
 
 //copy{//拷贝文件、文件夹
@@ -79,3 +78,26 @@ dependencies {
 //                }
 //        }
 //}
+
+//执行外部命令
+task "apkcopy" {
+    doLast {
+        def sourceFilePath = getBuildDir().path + "/outputs/apk"
+        def desFilePath = '/Users/xuekai/Desktop/'
+        //执行的命令，配置不同的command，可以执行各种外部命令包括java等
+        def command = "mv -f ${sourceFilePath} ${desFilePath}"
+        //执行外部命令，传入一个闭包
+        exec {
+            try {
+                //外部命令都是bash
+                executable 'bash'
+                //可以执行命令，java，android等各种代码
+                args '-c',command
+                println 'over!!!!!!'
+            } catch (e) {
+                println 'error!!!!!!'
+            }
+        }
+
+    }
+}
