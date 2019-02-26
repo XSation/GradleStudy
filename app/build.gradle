@@ -101,3 +101,23 @@ task "apkcopy" {
 
     }
 }
+
+//TODO:创建一个application，并且修改清单文件
+task "createFile" {
+    doLast {
+        def newFile = new File("/Users/xuekai/projects/as_workspace/MyApplication/app/src/main/java/com/xk/myapplication/abc.java")
+        if(!newFile.exists()){
+            newFile.createNewFile()
+        }
+        newFile.withWriter {
+            it.write('''package com.xk.myapplication;
+import android.app.Application;
+
+
+public class abc extends Application {
+
+}
+''')
+        }
+    }
+}
