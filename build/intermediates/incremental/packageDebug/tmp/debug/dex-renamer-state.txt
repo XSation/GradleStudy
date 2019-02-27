@@ -1,4 +1,0 @@
-#Mon Feb 25 22:09:30 CST 2019
-base.0=/Users/xuekai/projects/as_workspace/MyApplication/app/build/intermediates/transforms/dexMerger/debug/0
-path.0=classes.dex
-renamed.0=classes.dex

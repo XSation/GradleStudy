@@ -1,5 +1,16 @@
 apply from: new File('common.gradle')
-
+apply plugin: 'cz.malohlava.visteg'
+visteg {
+    enabled = true
+    colouredNodes = true
+    colouredEdges = true
+    destination = 'build/reports/visteg.dot'
+    exporter = 'dot'
+    colorscheme = 'spectral11'
+    nodeShape = 'box'
+    startNodeShape = 'hexagon'
+    endNodeShape = 'doubleoctagon'
+}
 //依赖相关的api
 buildscript {
     ScriptHandler scriptHandler ->
@@ -8,15 +19,12 @@ buildscript {
             RepositoryHandler repositoryHandler ->
                 repositoryHandler.google()
                 repositoryHandler.jcenter()
-                repositoryHandler.maven {
-                    MavenArtifactRepository mavenArtifactRepository ->
-                        mavenArtifactRepository.url('')
-                }
         }
         //配置工程插件的地址(写gradle程序时需要的插件)，project中的dependencies时应用程序所需要的依赖
         scriptHandler.dependencies {
             DependencyHandler dependencyHandler ->
                 dependencyHandler.classpath('com.android.tools.build:gradle:3.2.1')
+                classpath 'cz.malohlava:visteg:1.0.3'
                 // NOTE: Do not place your application dependencies here; they belong
                 // in the individual module build.gradle files
         }
@@ -55,4 +63,15 @@ subprojects {
         }
 }
 
+//visteg {
+//    enabled        = true
+//    colouredNodes  = true
+//    colouredEdges  = true
+//    destination    = 'build/reports/visteg.dot'
+//    exporter       = 'dot'
+//    colorscheme    = 'spectral11'
+//    nodeShape      = 'box'
+//    startNodeShape = 'hexagon'
+//    endNodeShape   = 'doubleoctagon'
+//}
 

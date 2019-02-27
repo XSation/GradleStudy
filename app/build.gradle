@@ -17,8 +17,8 @@ android {
         applicationId "com.xk.myapplication"
         minSdkVersion 14
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
+        versionCode rootProject.ext.android.versionCode
+        versionName rootProject.ext.android.versionName
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -92,7 +92,7 @@ task "apkcopy" {
                 //外部命令都是bash
                 executable 'bash'
                 //可以执行命令，java，android等各种代码
-                args '-c',command
+                args '-c', command
                 println 'over!!!!!!'
             } catch (e) {
                 println 'error!!!!!!'
@@ -102,11 +102,11 @@ task "apkcopy" {
     }
 }
 
-//TODO:创建一个application，并且修改清单文件
 task "createFile" {
     doLast {
+        clean1
         def newFile = new File("/Users/xuekai/projects/as_workspace/MyApplication/app/src/main/java/com/xk/myapplication/abc.java")
-        if(!newFile.exists()){
+        if (!newFile.exists()) {
             newFile.createNewFile()
         }
         newFile.withWriter {
@@ -119,5 +119,231 @@ public class abc extends Application {
 }
 ''')
         }
+    }
+}
+
+//tasks('clean1'){
+//    doLast{
+//        println "clena===="
+//        createFile
+//    }
+//}
+
+//=========task的创建方式
+//1.直接通过task(String name)创建一个task
+task helloTask1(group: 'hello', description: 'task study') {
+    println 'hello1'
+
+    doFirst {
+        println('hello1 first')
+    }
+    doLast {
+        println('hello1 last')
+    }
+}
+//2.通过TaskContaners（管理task）创建。project中有taskContaner，用来管理task。
+tasks.create('helloTask2') {
+    setGroup('hello')
+    setDescription('task study')
+    println 'hello2'
+    doFirst {
+        println('hello2 first')
+    }
+    doLast {
+        println('hello2 last')
+    }
+}
+
+task lib1 << {
+    println 'lib1 的doLast'
+}
+task lib2 << {
+    println 'lib2 的doLast'
+}
+
+task taskA {
+    //taskA的配置阶段指定他的依赖
+    //1.静态指定
+//    dependsOn(lib1)
+    //2.静态指定
+//    dependsOn lib1
+    //3.动态指定
+    dependsOn tasks.findAll {
+        //通过一个条件，过滤出task,最后findAll返回一个set集合
+        return it.name.startsWith("lib")
+    }
+    doLast {
+        println 'taskA doLast'
+    }
+}
+
+//====计算build时长
+def startBuildTime, endBuildTime
+afterEvaluate {
+        //在这个生命周期中是为了保证要找的task都已经配置完毕
+    Project project ->
+        //1.找到preBuildtasd
+        def preBuildTask = project.tasks.findByPath('preBuild')
+        preBuildTask.doFirst {
+            //在preBuildTask之前开始做事情
+            startBuildTime = System.currentTimeMillis()
+        }
+        //2.找到buildtask
+        def buildTask = project.tasks.findByPath('build')
+        buildTask.doLast {
+            //在preBuildTask之前开始做事情
+            endBuildTime = System.currentTimeMillis()
+            println endBuildTime - startBuildTime
+        }
+}
+
+//========task 依赖
+
+task task1 {
+    doLast {
+        println 'task1'
+    }
+}
+task task2 {
+    doLast {
+        println 'task2'
+    }
+}
+//1.定义的时候配置
+task task3(dependsOn: [task1, task2]) {
+    doLast {
+        println 'task3'
+    }
+}
+//2.额外配置
+//task2.dependsOn(task1)
+task3.dependsOn(task1, task2)
+
+//=========处理release.xml
+task handleReleaseXml {
+    def srcFile = file('releases.xml')
+    doLast {
+        def rootNode = new XmlParser().parse(srcFile)
+
+        def desFile = new File(projectDir, "/release/")
+        rootNode.release.each {
+            releaseNode ->
+                desFile.mkdir()
+
+                def file = new File(desFile, "release-${releaseNode.versionName.text()}")
+                file.createNewFile()
+                file.withWriter {
+                    writer ->
+                        writer.writeLine(releaseNode.versionCode.text() + releaseNode.versionName.text() + releaseNode.versionInfo.text())
+                }
+        }
+
+    }
+}
+
+task handleReleaseXmlTest(dependsOn: handleReleaseXml) {
+    doLast {
+        println "执行该test，由于她依赖了handleReleaseXml，所以会先执行handleReleaseXml，然后在这里可以进行一些测试"
+    }
+}
+
+//=========以上通过dependsOn决定了两个task的依赖关系。下面是通过input ouput来定义两个task的依赖关系（执行顺序）
+
+ext {
+    versionName = rootProject.ext.android.versionName
+    versionCode = rootProject.ext.android.versionCode
+    updateLog = "根据网络获取，传入versionCode，网络返回日志22"+System.currentTimeMillis()
+    def destPath = file("release.xml")
+    if (!destPath.exists()) {
+        destPath.createNewFile()
+    }
+    destFile = destPath.path
+
+}
+//通过配置阶段，网络请求拿到版本号，更新信息等数据，写入到release.xml中
+import groovy.xml.MarkupBuilder
+
+task writeDataToRelease {
+    inputs.property("versionCode", "$versionCode")
+    inputs.properties("versionName": "$versionName", "updateLog": "${updateLog}")
+    outputs.file(destFile)
+    println "configWrite"
+
+    doLast {
+        println "readRelease"
+        def properties = inputs.properties
+        File outputFile = outputs.getFiles().getSingleFile()
+
+        def sw = new StringWriter()
+
+        def content = outputFile.text
+        if (content != null && content.size() <= 0) {
+            //原来文件是空的
+            def builder = new MarkupBuilder(sw)
+            //生成releases节点
+            builder.releases {
+                //以下生成3个release节点，用不同的方式，具体看效果
+                release("${updateLog}", "versionCode": "$versionCode", "versionName": "$versionName",)
+                release("versionCode": "$versionCode", "versionName": "$versionName", "${updateLog}")
+                release("versionCode": "$versionCode") {
+                    versionName("$versionName")
+                    updateLog("$updateLog")
+                }
+            }
+            outputFile.withWriter {
+                writer ->
+                    writer.append(sw.toString())
+            }
+        } else {
+            //原来文件不空
+            def builder = new MarkupBuilder(sw)
+            //以下生成3个release节点，用不同的方式，具体看效果
+            builder.release("${updateLog}", "versionCode": "$versionCode", "versionName": "$versionName",)
+            builder.release("versionCode": "$versionCode", "versionName": "$versionName", "${updateLog}")
+            builder.release("versionCode": "$versionCode") {
+                versionName("$versionName")
+                updateLog("$updateLog")
+            }
+            outputFile.withReader {
+                BufferedReader reader ->
+                    def lines = reader.readLines()
+                    outputFile.withWriter {
+                        writer ->
+                            lines.each {
+                                line ->
+                                    if (line.contains("/releases")) {
+                                        //最后一行
+//                                        println "writeLastLine"
+                                        writer.write(sw.toString())
+                                    }
+//                                    println "writeLine"
+                                    writer.writeLine(line)
+                            }
+                    }
+            }
+        }
+    }
+}
+task readRelease1 {
+    inputs.file(destFile)
+    doLast {
+        def file = inputs.files.singleFile
+        println "readRelease1"
+    }
+}
+task readRelease {
+    inputs.file(destFile)
+    println "configReader"
+    doLast {
+        def file = inputs.files.singleFile
+        println "readRelease"
+    }
+}
+
+
+task inputOutputTest(dependsOn: [readRelease1,readRelease, writeDataToRelease]) {
+    println "inputOutputTest"
+    doLast {
+        println "inputOutputTest"
     }
 }

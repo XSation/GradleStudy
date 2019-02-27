@@ -1,7 +1,0 @@
-#Internal package file, do not edit.
-#Mon Feb 25 22:09:31 CST 2019
-0.baseType=DIRECTORY
-0.base=/Users/xuekai/projects/as_workspace/MyApplication/app/build/intermediates/transforms/dexMerger/debug/0
-0.path=classes.dex
-0.set=DEX
-count=1

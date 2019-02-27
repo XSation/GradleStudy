@@ -1,6 +1,8 @@
 ext {
     android = [
             compileSdkVersionForExtFile: 27,
+            versionName: "1.0",
+            versionCode: 1,
     ]
     dependencies = [
             appcompat: 'com.android.support:appcompat-v7:27.0.0',
