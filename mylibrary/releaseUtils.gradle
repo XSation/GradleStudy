@@ -1,0 +1,103 @@
+//=========以上通过dependsOn决定了两个task的依赖关系。下面是通过input ouput来定义两个task的依赖关系（执行顺序）
+
+ext {
+    versionName = rootProject.ext.android.versionName
+    versionCode = rootProject.ext.android.versionCode
+    updateLog = "根据网络获取，传入versionCode，网络返回日志2" + System.currentTimeMillis()
+    def destPath = file("release.xml")
+    if (!destPath.exists()) {
+        destPath.createNewFile()
+    }
+    destFile = destPath.path
+
+}
+//通过配置阶段，网络请求拿到版本号，更新信息等数据，写入到release.xml中
+import groovy.xml.MarkupBuilder
+
+task xktest{
+    doLast{
+        println("xktest")
+    }
+}
+task writeDataToRelease(dependsOn: xktest){
+    inputs.property("versionCode", "$versionCode")
+    inputs.properties("versionName": "$versionName", "updateLog": "${updateLog}")
+    outputs.file(destFile)
+
+    doLast {
+        println "writeDataToRelease"
+        def properties = inputs.properties
+        File outputFile = outputs.getFiles().getSingleFile()
+
+        def sw = new StringWriter()
+
+        def content = outputFile.text
+        if (content != null && content.size() <= 0) {
+            //原来文件是空的
+            def builder = new MarkupBuilder(sw)
+            //生成releases节点
+            builder.releases {
+                //以下生成3个release节点，用不同的方式，具体看效果
+                release("${updateLog}", "versionCode": "$versionCode", "versionName": "$versionName",)
+                release("versionCode": "$versionCode", "versionName": "$versionName", "${updateLog}")
+                release("versionCode": "$versionCode") {
+                    versionName("$versionName")
+                    updateLog("$updateLog")
+                }
+            }
+            outputFile.withWriter {
+                writer ->
+                    writer.append(sw.toString())
+            }
+        } else {
+            //原来文件不空
+            def builder = new MarkupBuilder(sw)
+            //以下生成3个release节点，用不同的方式，具体看效果
+            builder.release("${updateLog}", "versionCode": "$versionCode", "versionName": "$versionName",)
+            builder.release("versionCode": "$versionCode", "versionName": "$versionName", "${updateLog}")
+            builder.release("versionCode": "$versionCode") {
+                versionName("$versionName")
+                updateLog("$updateLog")
+            }
+            outputFile.withReader {
+                BufferedReader reader ->
+                    def lines = reader.readLines()
+                    outputFile.withWriter {
+                        writer ->
+                            lines.each {
+                                line ->
+                                    if (line.contains("/releases")) {
+                                        //最后一行
+//                                        println "writeLastLine"
+                                        writer.write(sw.toString())
+                                    }
+//                                    println "writeLine"
+                                    writer.writeLine(line)
+                            }
+                    }
+            }
+        }
+    }
+}
+task readRelease1 {
+    inputs.file(destFile)
+    doLast {
+        def file = inputs.files.singleFile
+        println "readRelease1"
+    }
+}
+task readRelease {
+    mustRunAfter(writeDataToRelease)
+    inputs.file(destFile)
+    doLast {
+        def file = inputs.files.singleFile
+        println "readRelease 执行"
+    }
+}
+
+
+task inputOutputTest(dependsOn: [readRelease1, readRelease, writeDataToRelease]) {
+    doLast {
+        println "inputOutputTest dolast"
+    }
+}

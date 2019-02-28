@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
-println getRootDir()
-println getBuildDir()
-println getProjectDir()
+def mylibrary = rootProject.project('mylibrary')
+def releaseUtils = mylibrary.file('releaseUtils.gradle')
+apply from: releaseUtils
 
 //寻找当前目录下的文件
 //println file('app.iml').text
@@ -247,103 +247,58 @@ task handleReleaseXmlTest(dependsOn: handleReleaseXml) {
     }
 }
 
-//=========以上通过dependsOn决定了两个task的依赖关系。下面是通过input ouput来定义两个task的依赖关系（执行顺序）
-
-ext {
-    versionName = rootProject.ext.android.versionName
-    versionCode = rootProject.ext.android.versionCode
-    updateLog = "根据网络获取，传入versionCode，网络返回日志22"+System.currentTimeMillis()
-    def destPath = file("release.xml")
-    if (!destPath.exists()) {
-        destPath.createNewFile()
-    }
-    destFile = destPath.path
-
-}
-//通过配置阶段，网络请求拿到版本号，更新信息等数据，写入到release.xml中
-import groovy.xml.MarkupBuilder
-
-task writeDataToRelease {
-    inputs.property("versionCode", "$versionCode")
-    inputs.properties("versionName": "$versionName", "updateLog": "${updateLog}")
-    outputs.file(destFile)
-    println "configWrite"
-
+task ttt {
     doLast {
-        println "readRelease"
-        def properties = inputs.properties
-        File outputFile = outputs.getFiles().getSingleFile()
+        task3.execute()
+    }
+}
 
-        def sw = new StringWriter()
-
-        def content = outputFile.text
-        if (content != null && content.size() <= 0) {
-            //原来文件是空的
-            def builder = new MarkupBuilder(sw)
-            //生成releases节点
-            builder.releases {
-                //以下生成3个release节点，用不同的方式，具体看效果
-                release("${updateLog}", "versionCode": "$versionCode", "versionName": "$versionName",)
-                release("versionCode": "$versionCode", "versionName": "$versionName", "${updateLog}")
-                release("versionCode": "$versionCode") {
-                    versionName("$versionName")
-                    updateLog("$updateLog")
-                }
-            }
-            outputFile.withWriter {
-                writer ->
-                    writer.append(sw.toString())
-            }
-        } else {
-            //原来文件不空
-            def builder = new MarkupBuilder(sw)
-            //以下生成3个release节点，用不同的方式，具体看效果
-            builder.release("${updateLog}", "versionCode": "$versionCode", "versionName": "$versionName",)
-            builder.release("versionCode": "$versionCode", "versionName": "$versionName", "${updateLog}")
-            builder.release("versionCode": "$versionCode") {
-                versionName("$versionName")
-                updateLog("$updateLog")
-            }
-            outputFile.withReader {
-                BufferedReader reader ->
-                    def lines = reader.readLines()
-                    outputFile.withWriter {
-                        writer ->
-                            lines.each {
-                                line ->
-                                    if (line.contains("/releases")) {
-                                        //最后一行
-//                                        println "writeLastLine"
-                                        writer.write(sw.toString())
-                                    }
-//                                    println "writeLine"
-                                    writer.writeLine(line)
-                            }
-                    }
-            }
+afterEvaluate {
+    def buildTask = tasks.findByPath('build')
+    if (buildTask != null) {
+        buildTask.doLast {
+            //通过这种execute的方式执行一个task，他的依赖的task不会被执行
+            task3.execute()
         }
     }
 }
-task readRelease1 {
-    inputs.file(destFile)
+
+//===========模拟tinker，在系统task之间插入自己的task
+task systemA {
     doLast {
-        def file = inputs.files.singleFile
-        println "readRelease1"
-    }
-}
-task readRelease {
-    inputs.file(destFile)
-    println "configReader"
-    doLast {
-        def file = inputs.files.singleFile
-        println "readRelease"
+        println "systemA"
     }
 }
 
-
-task inputOutputTest(dependsOn: [readRelease1,readRelease, writeDataToRelease]) {
-    println "inputOutputTest"
+task systemB{
+    systemB.mustRunAfter systemA
     doLast {
-        println "inputOutputTest"
+        println "systemB"
     }
+}
+
+task myTask{
+    doLast{
+        println "myTask"
+    }
+}
+
+afterEvaluate {
+    //mustRunAfter和dependsOn的区别：mustRunAfter是指，如果两个任务都被执行了，这个关系才会成立。但是只执行后面的任务，前面的不会被拉起。
+    //dependsOn是指，如果你只执行后面的那个任务，前面的也会被拉起。
+    //所以，如果我们给系统声明周期中注入自己task的时候，最好用mustRunAfter，这样不会干扰系统内部的运行，但是有时候必须用dependsOn，因为你的任务需要被拉起，如下
+    //以下为推荐写法
+    myTask.mustRunAfter systemA
+    systemB.dependsOn myTask
+//    以下为不推荐写法
+//    myTask.dependsOn(systemA)
+//    systemB.dependsOn(myTask)
+    //    manifestTask.mustRunAfter variantOutput.processManifest
+
+//    variantOutput.processResources.dependsOn manifestTask
+
+
+//    myTask.mustRunAfter(systemA)
+//    systemB.mustRunAfter(myTask)
+
 }
