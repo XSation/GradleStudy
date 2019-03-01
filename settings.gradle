@@ -1,4 +1,6 @@
+//对应setting.java,用来决定哪些project会被gralde处理
 include ':app', ':mylibrary'
+//, ':myPlugin'
 
 if (hasProperty('isLoadTest') ? isLoadTest.toBoolean() : false) {
     include(':loglib')
