@@ -14,12 +14,8 @@ ext {
 //通过配置阶段，网络请求拿到版本号，更新信息等数据，写入到release.xml中
 import groovy.xml.MarkupBuilder
 
-task xktest{
-    doLast{
-        println("xktest")
-    }
-}
-task writeDataToRelease(dependsOn: xktest){
+
+task writeDataToRelease(){
     inputs.property("versionCode", "$versionCode")
     inputs.properties("versionName": "$versionName", "updateLog": "${updateLog}")
     outputs.file(destFile)

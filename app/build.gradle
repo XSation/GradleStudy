@@ -1,9 +1,5 @@
 apply plugin: 'com.android.application'
 
-
-
-
-
 def mylibrary = rootProject.project('mylibrary')
 def releaseUtils = mylibrary.file('releaseUtils.gradle')
 apply from: releaseUtils
@@ -25,6 +21,19 @@ android {
         versionName rootProject.ext.android.versionName
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+    flavorDimensions "default"//这个名字貌似随便取，也可以有多个，总之一定要有..
+
+    //设置不同的变体
+    productFlavors {
+        jingdong {
+            dimension='default'
+        }
+
+        google {
+            dimension='default'
+
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -40,7 +49,8 @@ android {
         }
     }
 }
-//apply plugin: MPlugin
+apply plugin: MPlugin
+apply from: getParent().file('packagePlugin.gradle')
 
 //也可以通过android调用sourcesets，因为他是一个方法
 android.sourceSets {
@@ -271,8 +281,20 @@ task ttt {
         task3.execute()
     }
 }
+mplugin {
+    name "xuekai"
+    code "1994"
+}
 
 afterEvaluate {
+
+    this.android.applicationVariants.all {
+        //遍历各个变体
+        variant ->
+            def output = variant.outputs.first()
+//            output.outputFile = new File("xxxxx")//修改各个变体的apk输出路径
+        println variant.checkManifest//通过点 直接获取task的名字，但是名字会被作轻微的修改
+    }
     def buildTask = tasks.findByPath('build')
     if (buildTask != null) {
         buildTask.doLast {

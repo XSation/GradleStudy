@@ -1,0 +1,20 @@
+this.afterEvaluate {
+    this.android.applicationVariants.all {
+        variant ->
+            def checkTask = variant.checkManifest
+            checkTask.doFirst{
+                println "hhehheh${variant.buildType.name}"
+                if (variant.buildType.name.equals('release')) {
+                    //如果构建类型是release，就更新所有模块插件
+                    updatePlugin()
+                }
+            }
+
+
+    }
+}
+
+void updatePlugin(){
+    println "updatePlugin"
+}
+
